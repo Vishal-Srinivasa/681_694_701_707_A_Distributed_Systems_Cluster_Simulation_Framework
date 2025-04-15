@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cluster Simulator Control Panel</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        h1, h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 5px; background-color: #f9f9f9; }
+        label { display: inline-block; min-width: 100px; margin-bottom: 5px; }
+        input[type="text"], input[type="number"] { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 3px; }
+        button { padding: 8px 15px; margin: 5px 5px 5px 0; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 3px; }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #eee; padding: 10px; border: 1px solid #ddd; border-radius: 3px; white-space: pre-wrap; word-wrap: break-word; max-height: 300px; overflow-y: auto; }
+        .error { color: red; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        code { background-color: #eee; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Cluster Simulator Control Panel</h1>
+
+    <div class="section">
+        <h2>Nodes</h2>
+        <div>
+            <label for="cpuCores">CPU Cores:</label>
+            <input type="number" id="cpuCores" name="cpuCores" value="1" min="0.1" step="0.1">
+            <button onclick="addNode()">Add Node</button>
+        </div>
+        <br>
+        <div>
+            <button onclick="listNodes()">List Nodes</button>
+        </div>
+        <br>
+        <div>
+            <label for="nodeIdRemove">Node ID:</label>
+            <input type="text" id="nodeIdRemove" name="nodeIdRemove" placeholder="Enter Node ID to remove">
+            <button onclick="removeNode()">Remove Node</button>
+        </div>
+        <h3>Nodes Output:</h3>
+        <pre id="nodesOutput">Node details will appear here...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Pods</h2>
+        <div>
+            <label for="cpuRequest">CPU Request:</label>
+            <input type="number" id="cpuRequest" name="cpuRequest" value="0.5" min="0.1" step="0.1">
+            <button onclick="launchPod()">Launch Pod</button>
+        </div>
+        <br>
+        <div>
+            <button onclick="listPods()">List Pods</button>
+        </div>
+        <br>
+        <div>
+            <label for="podIdDelete">Pod ID:</label>
+            <input type="text" id="podIdDelete" name="podIdDelete" placeholder="Enter Pod ID to delete">
+            <button onclick="deletePod()">Delete Pod</button>
+        </div>
+        <h3>Pods Output:</h3>
+        <pre id="podsOutput">Pod details will appear here...</pre>
+    </div>
+
+     <div class="section">
+        <h2>Cluster Health</h2>
+        <div>
+            <button onclick="getHealth()">Get Health Status</button>
+        </div>
+        <h3>Health Output:</h3>
+        <pre id="healthOutput">Health status will appear here...</pre>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000'; // Use relative path assuming HTML is served by Flask or same origin
+                                // Or set to 'http://localhost:5000' if running separately
+
+        async function apiCall(method, path, body = null, outputElementId) {
+            const outputElement = document.getElementById(outputElementId);
+            outputElement.textContent = 'Loading...';
+            outputElement.classList.remove('error');
+
+            const options = {
+                method: method,
+                headers: {}
+            };
+
+            if (body) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+
+            try {
+                const response = await fetch(API_BASE_URL + path, options);
+                const data = await response.json();
+
+                outputElement.textContent = JSON.stringify(data, null, 2); // Pretty print JSON
+
+                if (!response.ok) {
+                    outputElement.classList.add('error');
+                    console.error('API Error:', data);
+                }
+            } catch (error) {
+                outputElement.textContent = `Network or Fetch Error: ${error.message}`;
+                outputElement.classList.add('error');
+                console.error('Fetch Error:', error);
+            }
+        }
+
+        // --- Node Functions ---
+        function addNode() {
+            const cpuCores = parseFloat(document.getElementById('cpuCores').value);
+            if (isNaN(cpuCores) || cpuCores <= 0) {
+                alert('Please enter a valid positive number for CPU cores.');
+                return;
+            }
+            apiCall('POST', '/nodes/add', { cpu_cores: cpuCores }, 'nodesOutput');
+        }
+
+        function listNodes() {
+            apiCall('GET', '/nodes/list', null, 'nodesOutput');
+        }
+
+        function removeNode() {
+            const nodeId = document.getElementById('nodeIdRemove').value.trim();
+            if (!nodeId) {
+                alert('Please enter a Node ID to remove.');
+                return;
+            }
+            apiCall('DELETE', `/nodes/remove/${nodeId}`, null, 'nodesOutput');
+        }
+
+        // --- Pod Functions ---
+        function launchPod() {
+            const cpuRequest = parseFloat(document.getElementById('cpuRequest').value);
+             if (isNaN(cpuRequest) || cpuRequest <= 0) {
+                alert('Please enter a valid positive number for CPU request.');
+                return;
+            }
+            apiCall('POST', '/pods/launch', { cpu_request: cpuRequest }, 'podsOutput');
+        }
+
+        function listPods() {
+            apiCall('GET', '/pods/list', null, 'podsOutput');
+        }
+
+        function deletePod() {
+            const podId = document.getElementById('podIdDelete').value.trim();
+             if (!podId) {
+                alert('Please enter a Pod ID to delete.');
+                return;
+            }
+            apiCall('DELETE', `/pods/delete/${podId}`, null, 'podsOutput');
+        }
+
+         // --- Health Function ---
+        function getHealth() {
+            apiCall('GET', '/health', null, 'healthOutput');
+        }
+
+        // --- Initial Load (Optional) ---
+        // Uncomment to load lists on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            listNodes();
+            listPods();
+            getHealth();
+        });
+
+    </script>
+
+</body>
+</html>

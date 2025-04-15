@@ -1,5 +1,6 @@
 # cluster_simulator.py
 from flask import Flask, request, jsonify
+from flask_cors import CORS # Import CORS
 import docker
 import uuid
 import logging # Keep existing import
@@ -52,6 +53,8 @@ heartbeat_logger.addHandler(heartbeat_file_handler)
 
 
 app = Flask(__name__)
+CORS(app) # Initialize CORS for the entire app
+
 try:
     client = docker.from_env()
 except docker.errors.DockerException as e:
