@@ -28,12 +28,12 @@ except ValueError:
 # --- Simulation Parameters ---
 # Use environment variables or defaults for failure rates
 try:
-    POD_FAILURE_RATE = float(os.environ.get("POD_FAILURE_RATE", "0.02")) # Default 2%
+    POD_FAILURE_RATE = float(os.environ.get("POD_FAILURE_RATE", "0.1")) # Default 2%
     # NODE_CRASH_RATE = float(os.environ.get("NODE_CRASH_RATE", "0.001")) # Optional: Default 0.1%
     NODE_CRASH_RATE = 0.0 # Disable node crash simulation for now to focus on pod failure
 except ValueError:
     logger.error("Invalid failure rate environment variable. Using defaults.")
-    POD_FAILURE_RATE = 0.02
+    POD_FAILURE_RATE = 0.1
     NODE_CRASH_RATE = 0.0
 
 # --- Validation ---
